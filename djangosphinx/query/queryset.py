@@ -259,7 +259,10 @@ class SphinxQuerySet(object):
         return self
 
     def count(self):
-        return min(int(self.meta.get('total_found', 0)), self._maxmatches)
+        return min(self.total_found(), self._maxmatches)
+
+    def total_found(self):
+        return int(self.meta.get('total_found', 0))
 
     # Возвращяет все объекты из индекса. Размер списка ограничен только
     # значением maxmatches
