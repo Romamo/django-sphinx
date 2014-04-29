@@ -242,6 +242,14 @@ class SphinxQuerySet(object):
             return self._clone(_order_by='ORDER BY %s' % ', '.join(sort_by))
         return self
 
+    def reverse(self):
+        """
+        Reverses the ordering of the QuerySet.
+        """
+        if self._order_by:
+            return self._clone(_order_by=self._order_by.replace(' ASC', '_ASC').replace(' DESC', ' ASC').replace('_ASC', ' DESC'))
+        return self
+
     def group_order_by(self, *args):
         sort_by = []
         for arg in args:
@@ -685,7 +693,7 @@ class SphinxQuerySet(object):
 
     def _process_filters(self, filters, exclude=False, **kwargs):
         for k, v in kwargs.iteritems():
-            if  len(k.split('__')) > 3:
+            if len(k.split('__')) > 3:
                 raise NotImplementedError('Related model fields lookup not supported')
 
             parts = k.rsplit('__', 1)
