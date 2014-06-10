@@ -272,6 +272,29 @@ class SphinxQuerySet(object):
     def total_found(self):
         return int(self.meta.get('total_found', 0))
 
+    def results_raw(self):
+        """
+        Returns raw id of results
+        """
+        fields = self.meta['fields'].copy()
+        id_pos = fields.pop('id')
+        ct = None
+        results_id = []
+
+        if self._iter:
+            try:
+                while True:
+                    doc = self._iter.next()
+                    doc_id = doc[id_pos]
+
+                    obj_id, ct = self._decode_document_id(int(doc_id))
+
+                    results_id.append(obj_id)
+            except StopIteration:
+                pass
+
+        return results_id
+
     # Возвращяет все объекты из индекса. Размер списка ограничен только
     # значением maxmatches
     def all(self):
@@ -419,7 +442,7 @@ class SphinxQuerySet(object):
 
     def _meta(self):
         if self._metadata is None:
-            self._get_data()
+            self._init_data()
 
         return self._metadata
 
@@ -460,7 +483,7 @@ class SphinxQuerySet(object):
 
         return self._offset is None
 
-    def _get_data(self):
+    def _init_data(self):
         if not self._indexes:
             #warnings.warn('Index list is not set. Using all known indices.')
             self._indexes = self._parse_indexes(all_indexes())
@@ -468,6 +491,9 @@ class SphinxQuerySet(object):
         self._iter = SphinxQuery(self.query_string, self._query_args)
         self._result_cache = []
         self._metadata = self._iter.meta
+
+    def _get_data(self):
+        self._init_data()
         self._fill_cache()
 
     ## Options
