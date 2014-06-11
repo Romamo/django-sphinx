@@ -489,11 +489,11 @@ class SphinxQuerySet(object):
             self._indexes = self._parse_indexes(all_indexes())
 
         self._iter = SphinxQuery(self.query_string, self._query_args)
-        self._result_cache = []
         self._metadata = self._iter.meta
 
     def _get_data(self):
         self._init_data()
+        self._result_cache = []
         self._fill_cache()
 
     ## Options
