@@ -272,29 +272,6 @@ class SphinxQuerySet(object):
     def total_found(self):
         return int(self.meta.get('total_found', 0))
 
-    def results_raw(self):
-        """
-        Returns raw id of results
-        """
-        fields = self.meta['fields'].copy()
-        id_pos = fields.pop('id')
-        ct = None
-        results_id = []
-
-        if self._iter:
-            try:
-                while True:
-                    doc = self._iter.next()
-                    doc_id = doc[id_pos]
-
-                    obj_id, ct = self._decode_document_id(int(doc_id))
-
-                    results_id.append(obj_id)
-            except StopIteration:
-                pass
-
-        return results_id
-
     # Возвращяет все объекты из индекса. Размер списка ограничен только
     # значением maxmatches
     def all(self):
@@ -523,7 +500,31 @@ class SphinxQuerySet(object):
 
         return 'OPTION %s' % ','.join(opts)
 
+
     ## Cache
+
+    def results_raw(self):
+        """
+        Returns raw id of results
+        """
+        fields = self.meta['fields'].copy()
+        id_pos = fields.pop('id')
+        ct = None
+        results_id = []
+
+        if self._iter:
+            try:
+                while True:
+                    doc = self._iter.next()
+                    doc_id = doc[id_pos]
+
+                    obj_id, ct = self._decode_document_id(int(doc_id))
+
+                    results_id.append(obj_id)
+            except StopIteration:
+                pass
+
+        return results_id
 
     def _fill_cache(self, num=None):
         fields = self.meta['fields'].copy()
