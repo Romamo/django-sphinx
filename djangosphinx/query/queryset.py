@@ -81,6 +81,8 @@ class SphinxQuerySet(object):
         self._filters = {}
         self._excludes = {}
 
+        self._values_list = None
+
         _q_opts = kwargs.pop('query_options', SPHINX_QUERY_OPTS)
         if 'ranker' not in _q_opts:
             _q_opts['ranker'] = 'bm25'
@@ -205,6 +207,9 @@ class SphinxQuerySet(object):
         if fields or aliases:
             return self._clone(_fields=fields, _aliases=aliases)
         return self
+
+    def values_list(self):
+        return self._clone(_values_list=True)
 
     def options(self, **kwargs):
         if not kwargs:
@@ -464,7 +469,7 @@ class SphinxQuerySet(object):
         if not self._indexes:
             #warnings.warn('Index list is not set. Using all known indices.')
             self._indexes = self._parse_indexes(all_indexes())
-
+#        print self.query_string
         self._iter = SphinxQuery(self.query_string, self._query_args)
         self._metadata = self._iter.meta
 
@@ -555,24 +560,34 @@ class SphinxQuerySet(object):
                     self._result_cache = []
                     return
 
-                if self.model is None and len(self._indexes) == 1 and ct is not None:
-                    self.model = ContentType.objects.get(pk=ct).model_class()
-
-                if self.model:
-                    qs = self.get_query_set(self.model)
-
-                    qs = qs.filter(pk__in=results[ct].keys())
-
-                    for obj in qs:
-                        results[ct][obj.pk]['obj'] = obj
-
+                if self._values_list:
+                    if fields:
+                        for doc_id in docs:
+                            results[ct][doc_id]['obj'] = {'id': doc_id}
+                            results[ct][doc_id]['obj'].update(docs[doc_id]['data']['fields'])
+                    else:
+                        for doc_id in docs:
+                            results[ct][doc_id]['obj'] = {'id': doc_id}
                 else:
-                    for ct in results:
-                        model_class = ContentType.objects.get(pk=ct).model_class()
-                        qs = self.get_query_set(model_class).filter(pk__in=results[ct].keys())
+                    if self.model is None and len(self._indexes) == 1 and ct is not None:
+                        self.model = ContentType.objects.get(pk=ct).model_class()
+
+                    if self.model:
+                        qs = self.get_query_set(self.model)
+
+                        qs = qs.filter(pk__in=results[ct].keys())
 
                         for obj in qs:
                             results[ct][obj.pk]['obj'] = obj
+
+                    else:
+                        for ct in results:
+                            model_class = ContentType.objects.get(pk=ct).model_class()
+                            qs = self.get_query_set(model_class).filter(pk__in=results[ct].keys())
+
+                            for obj in qs:
+                                results[ct][obj.pk]['obj'] = obj
+
                 #clear missing items
                 for pk in [pk for pk, doc in docs.items() if not 'obj' in doc['results']]:
                     del docs[pk]
